@@ -1,0 +1,11 @@
+{
+    "name": "Contract",
+    "alias": "Contract",
+    "description": "The contract module is responsible for managing contracts.",
+    "active": 1,
+    "order": 70,
+    "providers": [
+        "Modules\\Contract\\Providers\\ContractServiceProvider",
+        "Modules\\Contract\\Providers\\RouteServiceProvider"
+    ]
+}

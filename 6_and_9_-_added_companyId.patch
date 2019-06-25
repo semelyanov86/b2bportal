@@ -1,0 +1,258 @@
+Index: database/migrations/2019_06_13_202956_create_companies_table.php
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- database/migrations/2019_06_13_202956_create_companies_table.php	(date 1560447803000)
++++ database/migrations/2019_06_13_202956_create_companies_table.php	(date 1560447803000)
+@@ -0,0 +1,32 @@
++<?php
++
++use Illuminate\Support\Facades\Schema;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Database\Migrations\Migration;
++
++class CreateCompaniesTable extends Migration
++{
++    /**
++     * Run the migrations.
++     *
++     * @return void
++     */
++    public function up()
++    {
++        Schema::create('companies', function (Blueprint $table) {
++            $table->bigIncrements('id');
++            $table->string('1cid');
++            $table->timestamps();
++        });
++    }
++
++    /**
++     * Reverse the migrations.
++     *
++     * @return void
++     */
++    public function down()
++    {
++        Schema::dropIfExists('companies');
++    }
++}
+Index: app/Company.php
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/Company.php	(date 1560449203000)
++++ app/Company.php	(date 1560449203000)
+@@ -0,0 +1,13 @@
++<?php
++
++namespace FleetCart;
++
++use Illuminate\Database\Eloquent\Model;
++
++class Company extends Model
++{
++    public function users()
++    {
++        return $this->hasMany('Modules\User\Entities\User');
++    }
++}
+Index: Modules/Product/Http/Controllers/ProductController.php
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- Modules/Product/Http/Controllers/ProductController.php	(date 1560430147000)
++++ Modules/Product/Http/Controllers/ProductController.php	(date 1560444420000)
+@@ -9,6 +9,8 @@
+ use Modules\Product\Filters\ProductFilter;
+ use Modules\Product\Events\ShowingProductList;
+ use Modules\Product\Http\Middleware\SetProductSortOption;
++use Modules\Setting\Entities\Setting;
++use FleetCart\Pricelist;
+ 
+ class ProductController extends Controller
+ {
+Index: app/Pricelist.php
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- app/Pricelist.php	(date 1560430147000)
++++ app/Pricelist.php	(date 1560452021000)
+@@ -3,8 +3,19 @@
+ namespace FleetCart;
+ 
+ use Illuminate\Database\Eloquent\Model;
++use Illuminate\Support\Facades\Auth;
++use Modules\Setting\Entities\Setting;
+ 
+ class Pricelist extends Model
+ {
+-    //
++    public function getPriceListId()
++    {
++        if (!Auth::check()) {
++            return Setting::get('B2CPriceListID');
++        } else {
++            if (Auth::user()->company_id && Auth::user()->company_id > 0) {
++                return Setting::get('B2BPriceListIDNowContract');
++            }
++        }
++    }
+ }
+Index: database/migrations/2019_06_13_203824_add_company_id_to_contracts.php
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- database/migrations/2019_06_13_203824_add_company_id_to_contracts.php	(date 1560448839000)
++++ database/migrations/2019_06_13_203824_add_company_id_to_contracts.php	(date 1560448839000)
+@@ -0,0 +1,33 @@
++<?php
++
++use Illuminate\Support\Facades\Schema;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Database\Migrations\Migration;
++
++class AddCompanyIdToContracts extends Migration
++{
++    /**
++     * Run the migrations.
++     *
++     * @return void
++     */
++    public function up()
++    {
++        Schema::table('contracts', function (Blueprint $table) {
++            $table->bigInteger('company_id')->unsigned()->nullable();
++            $table->foreign('company_id')->references('id')->on('companies')->onDelete('cascade');
++        });
++    }
++
++    /**
++     * Reverse the migrations.
++     *
++     * @return void
++     */
++    public function down()
++    {
++        Schema::table('contracts', function (Blueprint $table) {
++            //
++        });
++    }
++}
+Index: database/migrations/2019_06_13_203353_add_company_id_to_users.php
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- database/migrations/2019_06_13_203353_add_company_id_to_users.php	(date 1560448379000)
++++ database/migrations/2019_06_13_203353_add_company_id_to_users.php	(date 1560448379000)
+@@ -0,0 +1,33 @@
++<?php
++
++use Illuminate\Support\Facades\Schema;
++use Illuminate\Database\Schema\Blueprint;
++use Illuminate\Database\Migrations\Migration;
++
++class AddCompanyIdToUsers extends Migration
++{
++    /**
++     * Run the migrations.
++     *
++     * @return void
++     */
++    public function up()
++    {
++        Schema::table('users', function (Blueprint $table) {
++            $table->bigInteger('company_id')->unsigned()->nullable();
++            $table->foreign('company_id')->references('id')->on('companies')->onDelete('cascade');
++        });
++    }
++
++    /**
++     * Reverse the migrations.
++     *
++     * @return void
++     */
++    public function down()
++    {
++        Schema::table('users', function (Blueprint $table) {
++            $table->removeColumn('company_id');
++        });
++    }
++}
+Index: Modules/Account/Http/Controllers/AccountOrderController.php
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- Modules/Account/Http/Controllers/AccountOrderController.php	(date 1560430147000)
++++ Modules/Account/Http/Controllers/AccountOrderController.php	(date 1560451524000)
+@@ -5,6 +5,8 @@
+ use Illuminate\Routing\Controller;
+ use Illuminate\Support\Facades\Session;
+ use Modules\Cart\Cart;
++use Modules\Order\Entities\Order;
++use Illuminate\Database\Eloquent\Builder;
+ 
+ class AccountOrderController extends Controller
+ {
+@@ -15,10 +17,17 @@
+      */
+     public function index()
+     {
+-        $orders = auth()->user()
+-            ->orders()
+-            ->latest()
+-            ->paginate(15);
++        $groupId = auth()->user()->company_id;
++        if ($groupId) {
++            $orders = Order::whereHas('Contract', function ($query) use ($groupId){
++                $query->where('company_id', 'like', $groupId);
++            })->latest()->paginate(15);
++        } else {
++            $orders = auth()->user()
++                ->orders()
++                ->latest()
++                ->paginate(15);
++        }
+ 
+         return view('public.account.orders.index', compact('orders'));
+     }
+Index: Modules/User/Entities/User.php
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- Modules/User/Entities/User.php	(date 1560430147000)
++++ Modules/User/Entities/User.php	(date 1560449299000)
+@@ -256,4 +256,9 @@
+     {
+         return new UserTable($this->newQuery());
+     }
++
++    public function company()
++    {
++        return $this->belongsTo('FleetCart\Company');
++    }
+ }
+Index: Modules/Order/Entities/Order.php
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- Modules/Order/Entities/Order.php	(date 1560430147000)
++++ Modules/Order/Entities/Order.php	(date 1560449547000)
+@@ -93,7 +93,7 @@
+         return $this->belongsTo(Coupon::class)->withTrashed();
+     }
+ 
+-    public function     contract()
++    public function contract()
+     {
+         return $this->belongsTo(Contract::class);//->withTrashed();
+     }

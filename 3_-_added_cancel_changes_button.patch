@@ -1,0 +1,57 @@
+Index: Modules/Cart/Routes/public.php
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- Modules/Cart/Routes/public.php	(date 1560354337000)
++++ Modules/Cart/Routes/public.php	(date 1560357100000)
+@@ -7,3 +7,4 @@
+ Route::delete('cart/items/{cartItemId}', 'CartItemController@destroy')->name('cart.items.destroy');
+ 
+ Route::post('cart/shipping-method', 'CartShippingMethodController@store')->name('cart.shipping_method.store');
++Route::get('cart/unlink', 'CartController@unlink')->name('cart.unlink');
+Index: Themes/Storefront/views/public/partials/mini_cart.blade.php
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- Themes/Storefront/views/public/partials/mini_cart.blade.php	(date 1560354337000)
++++ Themes/Storefront/views/public/partials/mini_cart.blade.php	(date 1560357344000)
+@@ -85,6 +85,13 @@
+                 <span class="subtotal">
+                     {{ trans('storefront::layout.mini_cart.subtotal') }} <span>{{ $cart->subTotal()->convertToCurrentCurrency()->format() }}</span>
+                 </span>
++            @if(Session::has('CurrentOrder'))
++            <div class="text-center">
++                <a href="{{ route('cart.unlink') }}" class="btn btn-danger">
++                    Отменить изменение заказа
++                </a>
++            </div>
++                @endif
+ 
+                 <div class="mini-cart-buttons text-center">
+                     <a href="{{ route('cart.index') }}" class="btn btn-primary btn-view-cart">
+Index: Modules/Cart/Http/Controllers/CartController.php
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- Modules/Cart/Http/Controllers/CartController.php	(date 1560354337000)
++++ Modules/Cart/Http/Controllers/CartController.php	(date 1560358276000)
+@@ -21,4 +21,16 @@
+ 
+         return view('public.cart.index', compact('cart', 'countries'));
+     }
++
++
++    public function unlink()
++    {
++        $currentOrder = Session::get('CurrentOrder');
++        if ($currentOrder) {
++            Session::remove('CurrentOrder');
++            Session::pull('CurrentOrder');
++            Cart::clear();
++        }
++        return back();
++    }
+ }

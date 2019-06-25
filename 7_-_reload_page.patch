@@ -1,0 +1,28 @@
+Index: Themes/Storefront/views/public/partials/top_nav.blade.php
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- Themes/Storefront/views/public/partials/top_nav.blade.php	(date 1560452257000)
++++ Themes/Storefront/views/public/partials/top_nav.blade.php	(date 1560515242000)
+@@ -46,7 +46,7 @@
+                         <li><a href="{{ route('account.orders.index') }}">{{ trans('storefront::account.links.my_orders') }}</a></li>
+                         @if (count(contracts()) > 1)
+                             <li>
+-                                <select class="top-nav-select custom-select-white btn-danger form-control" onchange="$.get( 'contract/'+this.value );">
++                                <select class="top-nav-select custom-select-white btn-danger form-control" onchange="sendData('contract/'+this.value);">
+                                     <option value=Null >
+                                         {{ trans('storefront::contract.without_contract') }}
+                                     </option>
+@@ -66,3 +66,11 @@
+         </div>
+     </div>
+ </div>
++
++<script>
++    function sendData(url) {
++        $.get(url, function(data){
++            location.reload();
++        });
++    }
++</script>

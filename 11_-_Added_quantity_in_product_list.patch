@@ -1,0 +1,93 @@
+Index: Themes/Storefront/views/public/products/partials/list_view_product_card.blade.php
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- Themes/Storefront/views/public/products/partials/list_view_product_card.blade.php	(date 1560537081000)
++++ Themes/Storefront/views/public/products/partials/list_view_product_card.blade.php	(date 1560585483000)
+@@ -1,4 +1,5 @@
+-<div class="product-card-list clearfix">
++<div class="row">
++<div class="product-card-list clearfix col-xs-8">
+     <a class="product-image pull-left" href="{{ route('products.show', $product->slug) }}">
+         <ul class="product-ribbon list-inline">
+             @if ($product->isOutOfStock())
+@@ -16,7 +17,6 @@
+             </div>
+         @endif
+     </a>
+-
+     <div class="product-content clearfix">
+         <div class="product-content-inner">
+             <a href="{{ route('products.show', $product->slug) }}" class="product-name">
+@@ -54,17 +54,47 @@
+                     {{ trans('storefront::product_card.view_details') }}
+                 </a>
+             @else
+-                <form method="POST" action="{{ route('cart.items.store') }}">
++                <form method="POST" action="{{ route('cart.items.store') }}" class="form-inline">
+                     {{ csrf_field() }}
+ 
+                     <input type="hidden" name="product_id" value="{{ $product->id }}">
+-                    <input type="hidden" name="qty" value="1">
+-
+-                    <button type="submit" class="add-to-cart btn btn-primary" {{ $product->isOutOfStock() ? 'disabled' : '' }} data-loading>
+-                        {{ trans('storefront::product_card.add_to_cart') }}
+-                    </button>
++                    <div class="row">
++                        <div class="col-xs-6">
++                            <input type="number" name="qty" value="1" style="width:50%;">
++                        </div>
++                        <div class="col-xs-6">
++                            <button type="submit" class="add-to-cart btn btn-primary" {{ $product->isOutOfStock() ? 'disabled' : '' }} data-loading>
++                                {{ trans('storefront::product_card.add_to_cart') }}
++                            </button>
++                        </div>
++
++                    </div>
++
+                 </form>
+             @endif
+         </div>
+     </div>
+ </div>
++    <div class="col-xs-4 m-t-10">
++        {{--@if ($product->isOutOfStock())
++            <li><span class="ribbon bg-red">{{ trans('storefront::product_card.out_of_stock') }}</span></li>
++        @endif--}}
++        @if ($product->productCount->count() > 0)
++            <div class="table-responsive">
++                <table class="table">
++                    <tbody>
++                    @foreach ($product->productCount as $product)
++                        <tr>
++                            <td><h5>{{$product->storage->name}}</h5></td>
++                            <td><h5>{{$product->quantity}}</h5></td>
++
++                        </tr>
++                    @endforeach
++                    </tbody>
++                </table>
++            </div>
++        @else
++            <span class="ribbon bg-red">{{ trans('storefront::product_card.out_of_stock') }}</span>
++        @endif
++    </div>
++</div>
+\ No newline at end of file
+Index: Modules/Product/Http/Controllers/ProductController.php
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- Modules/Product/Http/Controllers/ProductController.php	(date 1560537081000)
++++ Modules/Product/Http/Controllers/ProductController.php	(date 1560583605000)
+@@ -40,7 +40,7 @@
+             $productIds = $model->keys();
+         }
+ 
+-        $query = $model->filter($productFilter);
++        $query = $model->filter($productFilter)->with('productCount');
+ 
+         if (request()->has('category')) {
+             $productIds = (clone $query)->select('id')->pluck('id');

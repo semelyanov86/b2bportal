@@ -1,0 +1,84 @@
+Index: database/migrations/2019_06_12_210041_create_prices_table.php
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- database/migrations/2019_06_12_210041_create_prices_table.php	(date 1560368644000)
++++ database/migrations/2019_06_12_210041_create_prices_table.php	(date 1560426272000)
+@@ -16,14 +16,16 @@
+         Schema::create('prices', function (Blueprint $table) {
+             $table->unsignedInteger('id');
+             $table->bigInteger('pricelist_id')->unsigned();
++            $table->integer('product_id')->unsigned();
+             $table->decimal('price')->nullable();
+             $table->string('currency');
+             $table->timestamps();
+             $table->unique(['id', 'pricelist_id']);
+-            $table->primary(['id', 'pricelist_id']);
++            $table->primary(['id', 'pricelist_id', 'product_id']);
+         });
+         Schema::table('prices', function($table) {
+             $table->foreign('pricelist_id')->references('id')->on('pricelists')->onDelete('cascade');
++            $table->foreign('product_id')->references('id')->on('products')->onDelete('cascade');
+         });
+     }
+ 
+Index: Modules/Product/Entities/Product.php
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- Modules/Product/Entities/Product.php	(date 1560368644000)
++++ Modules/Product/Entities/Product.php	(date 1560430002000)
+@@ -20,6 +20,9 @@
+ use Modules\Support\Eloquent\Translatable;
+ use Illuminate\Database\Eloquent\SoftDeletes;
+ use Modules\Attribute\Entities\ProductAttribute;
++use Illuminate\Support\Facades\Session;
++use FleetCart\Price as Pricing;
++use Modules\Contract\Entities\Contract;
+ 
+ class Product extends Model
+ {
+@@ -243,7 +246,21 @@
+ 
+     public function getPriceAttribute($price)
+     {
+-        return Money::inDefaultCurrency($price);
++        $currentContract = Session::get('CurrentContract');
++        if ($currentContract) {
++            $contractModel = Contract::find($currentContract);
++            $pricelistId = $contractModel->pricelist_id;
++            $priceModel = Pricing::where(['product_id' => $this->id, 'pricelist_id' => $pricelistId])->first();
++            if ($priceModel) {
++                $newprice = $priceModel->price;
++            } else {
++                $newprice = '0.00';
++            }
++        } else {
++            $newprice = '0.00';
++        }
++
++        return Money::inDefaultCurrency($newprice);
+     }
+ 
+     public function getSpecialPriceAttribute($specialPrice)
+Index: Modules/Contract/Entities/Contract.php
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- Modules/Contract/Entities/Contract.php	(date 1560368644000)
++++ Modules/Contract/Entities/Contract.php	(date 1560428689000)
+@@ -36,6 +36,11 @@
+         return $this->belongsToMany(User::class, 'user_contracts', 'contract_id', 'user_id')->withTimestamps();
+     }
+ 
++    public function pricelist()
++    {
++        return $this->belongsTo('App\Pricelist')->withDefault();
++    }
++
+ //    public function orders()
+ //    {
+ //        return $this->hasMany(Order::class);//->withTrashed();
